@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>COVID-19 Forecast</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.16/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto py-4">
+        <h1 class="text-2xl font-bold mb-4 text-center">COVID-19 Forecast</h1>
+
+        <div class="bg-white shadow-md rounded-md p-4 mb-4">
+            <h2 class="text-xl mb-2 text-center">Actual Forecast</h2>
+            <table id="forecastTable" class="w-full mb-4">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-2 text-center">Date</th>
+                        <th class="px-4 py-2 text-center">Daily Cases</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <div class="chart-container mx-auto" style="position: relative; height:40vh; width:80vw; display: flex; justify-content: center;">
+                <canvas id="forecastChart"></canvas>
+            </div>
+        </div>
+
+        <div class="bg-white shadow-md rounded-md p-4">
+            <h2 class="text-xl mb-2 text-center">Fake Forecast</h2>
+            <table id="fakeForecastTable" class="w-full mb-4">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-2 text-center">Date</th>
+                        <th class="px-4 py-2 text-center">Daily Cases</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <div class="chart-container mx-auto" style="position: relative; height:40vh; width:80vw; display: flex; justify-content: center;">
+                <canvas id="fakeForecastChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/main.js"></script>
+</body>
+</html>

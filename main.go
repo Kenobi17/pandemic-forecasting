@@ -17,7 +17,7 @@ type Forecast struct {
 }
 
 const forecastPath string = "forecast.csv"
-const mockForecastPath string = "mock_forecast.csv"
+const fakeForecastPath string = "fake_forecast.csv"
 
 func getForecastFromCSV(w http.ResponseWriter, path string) {
 	file, err := os.Open(path)
@@ -51,9 +51,9 @@ func getForecastFromCSV(w http.ResponseWriter, path string) {
 func getPort() string {
 	port, exists := os.LookupEnv("PORT")
 	if !exists {
-		port = ":8080"
+		port = "8080"
 	}
-	return ":" + port
+	return port
 }
 
 func main() {
@@ -66,10 +66,16 @@ func main() {
 		getForecastFromCSV(w, forecastPath)
 	})
 
-	http.HandleFunc("/api/forecast/mock", func(w http.ResponseWriter, r *http.Request) {
-		getForecastFromCSV(w, mockForecastPath)
+	http.HandleFunc("/api/forecast/fake", func(w http.ResponseWriter, r *http.Request) {
+		getForecastFromCSV(w, fakeForecastPath)
 	})
 
-	log.Println("Starting server on port :8080")
-	log.Fatal(http.ListenAndServe(getPort(), nil))
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "index.html")
+	})
+
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("."))))
+
+	log.Println("Starting server on port", getPort())
+	log.Fatal(http.ListenAndServe(":"+getPort(), nil))
 }

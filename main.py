@@ -49,9 +49,9 @@ forecast = get_forecast(daily_cases)
 csv_forecast(forecast, last_reported_date, file_name)
 plot_forecast(forecast, last_reported_date, file_name)
 
-mock_data_path = 'mock_data.json'
-mock_file_name = 'mock_forecast'
-mock_daily_cases, mock_last_reported_date = get_data(mock_data_path)
-mock_forecast = get_forecast(mock_daily_cases)
-csv_forecast(mock_forecast, mock_last_reported_date, mock_file_name)
-plot_forecast(mock_forecast, mock_last_reported_date, mock_file_name)
+fake_data_path = 'fake_data.json'
+fake_file_name = 'fake_forecast'
+fake_daily_cases, fake_last_reported_date = get_data(fake_data_path)
+fake_forecast = get_forecast(fake_daily_cases)
+csv_forecast(fake_forecast, fake_last_reported_date, fake_file_name)
+plot_forecast(fake_forecast, fake_last_reported_date, fake_file_name)
