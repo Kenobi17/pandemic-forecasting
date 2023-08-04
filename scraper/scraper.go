@@ -14,9 +14,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-const forecastPy string = "main.py"
-const mockForecastPy string = "mock.py"
-
+const pyScript string = "main.py"
 const url string = "https://www.worldometers.info/coronavirus/country/south-africa/"
 
 type DataJSON struct {
@@ -104,7 +102,7 @@ func getLastRecordDate(scriptTxt []string) (string, error) {
 }
 
 func generateCSV() error {
-	cmd := exec.Command("python3", forecastPy)
+	cmd := exec.Command("python3", pyScript)
 
 	_, err := cmd.Output()
 	if err != nil {

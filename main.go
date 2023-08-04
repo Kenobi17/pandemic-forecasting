@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/csv"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -20,6 +19,43 @@ type Forecast struct {
 const forecastPath string = "forecast.csv"
 const mockForecastPath string = "mock_forecast.csv"
 
+func getForecastFromCSV(w http.ResponseWriter, path string) {
+	file, err := os.Open(path)
+	if err != nil {
+		http.Error(w, "Could not fetch forecast data", http.StatusInternalServerError)
+		return
+	}
+	defer file.Close()
+
+	reader := csv.NewReader(file)
+	rows, err := reader.ReadAll()
+	if err != nil {
+		http.Error(w, "Could not parse forecast data", http.StatusInternalServerError)
+		return
+	}
+
+	forecast := Forecast{
+		DailyCases: make([]int, len(rows)-1),
+		Dates:      make([]string, len(rows)-1),
+	}
+
+	for i, r := range rows[1:] {
+		forecast.Dates[i] = r[0]
+		forecast.DailyCases[i], _ = strconv.Atoi(r[1])
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(forecast)
+}
+
+func getPort() string {
+	port, exists := os.LookupEnv("PORT")
+	if !exists {
+		port = ":8080"
+	}
+	return ":" + port
+}
+
 func main() {
 	err := scraper.ScrapeAndParseData()
 	if err != nil {
@@ -27,63 +63,13 @@ func main() {
 	}
 
 	http.HandleFunc("/api/forecast", func(w http.ResponseWriter, r *http.Request) {
-		file, err := os.Open(forecastPath)
-		if err != nil {
-			http.Error(w, "Could not fetch forecast data", http.StatusInternalServerError)
-			return
-		}
-		defer file.Close()
-
-		reader := csv.NewReader(file)
-		rows, err := reader.ReadAll()
-		if err != nil {
-			http.Error(w, "Could not parse forecast data", http.StatusInternalServerError)
-			return
-		}
-
-		forecast := Forecast{
-			DailyCases: make([]int, len(rows)-1),
-			Dates:      make([]string, len(rows)-1),
-		}
-
-		for i, r := range rows[1:] {
-			forecast.Dates[i] = r[0]
-			forecast.DailyCases[i], _ = strconv.Atoi(r[1])
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(forecast)
+		getForecastFromCSV(w, forecastPath)
 	})
 
 	http.HandleFunc("/api/forecast/mock", func(w http.ResponseWriter, r *http.Request) {
-		file, err := os.Open(mockForecastPath)
-		if err != nil {
-			http.Error(w, "Could not fetch forecast data", http.StatusInternalServerError)
-			return
-		}
-		defer file.Close()
-
-		reader := csv.NewReader(file)
-		rows, err := reader.ReadAll()
-		if err != nil {
-			http.Error(w, "Could not parse forecast data", http.StatusInternalServerError)
-			return
-		}
-
-		forecast := Forecast{
-			DailyCases: make([]int, len(rows)-1),
-			Dates:      make([]string, len(rows)-1),
-		}
-
-		for i, r := range rows[1:] {
-			forecast.Dates[i] = r[0]
-			forecast.DailyCases[i], _ = strconv.Atoi(r[1])
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(forecast)
+		getForecastFromCSV(w, mockForecastPath)
 	})
 
-	fmt.Println("Starting server on port :8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Println("Starting server on port :8080")
+	log.Fatal(http.ListenAndServe(getPort(), nil))
 }
