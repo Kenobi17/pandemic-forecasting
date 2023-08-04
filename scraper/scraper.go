@@ -2,6 +2,7 @@ package scraper
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -13,15 +14,17 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-const URL string = "https://www.worldometers.info/coronavirus/country/south-africa/"
-const FilePath string = "data.json"
+const forecastPy string = "main.py"
+const mockForecastPy string = "mock.py"
+
+const url string = "https://www.worldometers.info/coronavirus/country/south-africa/"
 
 type DataJSON struct {
 	DailyCases []interface{} `json:"daily_cases"`
 	Date       string        `json:"date"`
 }
 
-func getScriptTxt(doc *goquery.Document) []string {
+func getDailyCasesJS(doc *goquery.Document) ([]string, error) {
 	var scriptTxt []string
 
 	doc.Find("script").Each(func(i int, s *goquery.Selection) {
@@ -31,22 +34,34 @@ func getScriptTxt(doc *goquery.Document) []string {
 		}
 	})
 
-	return scriptTxt
+	if len(scriptTxt) == 0 {
+		return nil, errors.New("no script text found")
+	}
+
+	return scriptTxt, nil
 }
 
-func getCasesData(scriptTxt []string) []interface{} {
-	var dataStr string
-
+func getJSArray(scriptTxt []string, prefix string) (string, error) {
 	for _, line := range scriptTxt {
-		if strings.Contains(line, "data: [") {
-			dataStr = line
+		if strings.Contains(line, prefix) {
+			startIndex := strings.Index(line, "[")
+			endIndex := strings.Index(line, "]")
 
-			startIndex := strings.Index(dataStr, "[")
-			endIndex := strings.Index(dataStr, "]")
+			if startIndex == -1 || endIndex == -1 {
+				return "", errors.New("invalid data format")
+			}
 
-			dataStr = dataStr[startIndex+1 : endIndex]
-			break
+			return line[startIndex+1 : endIndex], nil
 		}
+	}
+
+	return "", errors.New("no data found")
+}
+
+func getCasesData(scriptTxt []string) ([]interface{}, error) {
+	dataStr, err := getJSArray(scriptTxt, "data: [")
+	if err != nil {
+		return nil, err
 	}
 
 	dataSlice := strings.Split(dataStr, ",")
@@ -57,78 +72,91 @@ func getCasesData(scriptTxt []string) []interface{} {
 		if c == "null" {
 			data[i] = nil
 		} else {
-			f, _ := strconv.ParseFloat(c, 64)
+			f, err := strconv.ParseFloat(c, 64)
+			if err != nil {
+				return nil, err
+			}
 			data[i] = f
 		}
 	}
 
-	return data
+	return data, nil
 }
 
-func getLastRecordDate(scriptTxt []string) string {
-	var dateStr string
-
-	for _, line := range scriptTxt {
-		if strings.Contains(line, "categories: [") {
-			dateStr = line
-
-			endIndex := strings.Index(dateStr, "]")
-			startIndex := endIndex - 13
-
-			dateStr = dateStr[startIndex : endIndex-1]
-			break
-		}
-	}
-
-	date, _ := time.Parse("Jan 02, 2006", dateStr)
-
-	return date.Format("2006-01-02")
-}
-
-func GenDailyCasesJSON() {
-	res, err := http.Get(URL)
+func getLastRecordDate(scriptTxt []string) (string, error) {
+	dates, err := getJSArray(scriptTxt, "categories: [")
 
 	if err != nil {
-		panic(err)
+		return "", err
+	}
+
+	endIndex := len(dates) - 1
+	startIndex := endIndex - 12
+
+	date := dates[startIndex:endIndex]
+
+	d, err := time.Parse("Jan 02, 2006", date)
+	if err != nil {
+		return "", err
+	}
+
+	return d.Format("2006-01-02"), nil
+}
+
+func generateCSV() error {
+	cmd := exec.Command("python3", forecastPy)
+
+	_, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("Error in python script exec: %w", err)
+	}
+
+	return nil
+}
+
+func ScrapeAndParseData() error {
+	res, err := http.Get(url)
+	if err != nil {
+		return err
 	}
 	defer res.Body.Close()
 
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
-	scriptTxt := getScriptTxt(doc)
+	scriptTxt, err := getDailyCasesJS(doc)
+	if err != nil {
+		return err
+	}
 
-	cases := getCasesData(scriptTxt)
+	cases, err := getCasesData(scriptTxt)
+	if err != nil {
+		return err
+	}
 
-	date := getLastRecordDate(scriptTxt)
+	date, err := getLastRecordDate(scriptTxt)
+	if err != nil {
+		return err
+	}
 
-	d := DataJSON{
+	data := DataJSON{
 		DailyCases: cases,
 		Date:       date,
 	}
 
-	file, _ := os.Create("data.json")
+	file, err := os.Create("data.json")
+	if err != nil {
+		return err
+	}
 	defer file.Close()
 
 	encoder := json.NewEncoder(file)
-	encoder.Encode(d)
-}
-
-func GenForecastJSON() string {
-	_, err := os.Stat(FilePath)
-
-	if os.IsNotExist(err) {
-		GenDailyCasesJSON()
-	}
-
-	cmd := exec.Command("python3", "s.py")
-
-	output, err := cmd.Output()
+	err = encoder.Encode(data)
 	if err != nil {
-		fmt.Println("Error in python script exec", err)
+		return err
 	}
 
-	return string(output)
+	return generateCSV()
 }
