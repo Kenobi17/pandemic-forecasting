@@ -26,15 +26,22 @@ For a manual setup, follow these steps:
     pip install virtualenv
     ```
 
-Then, to create a new virtual environment named `env`, use:
+    Then, to create a new virtual environment named `env`, use:
 
-    ```bash
+    ```bash 
     python3 -m venv env
     ```
+    
+    Activate the virtual environment:
 
-Activate the virtual environment:
-- On Unix or MacOS, use: `source env/bin/activate`
-- On Windows, use: `.\env\Scripts\activate`
+    ```bash
+    
+    # linux & macos  
+    source env/bin/activate
+
+    # windows
+    . \env\Scripts\activate
+    ```
 
 2. Install the necessary Python and Go packages:
 
