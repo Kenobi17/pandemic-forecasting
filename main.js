@@ -32,10 +32,39 @@ function loadForecast(endpoint, tableId, chartId) {
                         borderColor: 'rgb(75, 192, 192)',
                         tension: 0.1
                     }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
                 }
             });
         });
 }
 
+
+function downloadCSV(buttonId, endpoint, downloadName) {
+    const button = document.querySelector(`#${buttonId}`);
+    button.addEventListener('click', () => {
+        fetch(endpoint)
+            .then(response => response.blob())
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${downloadName}.csv`;
+                a.click();
+            });
+    });
+}
+
+
 loadForecast('/api/forecast', 'forecastTable', 'forecastChart');
 loadForecast('/api/forecast/fake', 'fakeForecastTable', 'fakeForecastChart');
+
+downloadCSV('downloadForecast', '/api/forecast/download', 'forecast');
+downloadCSV('downloadFakeForecast', '/api/forecast/fake/download', 'fake_forecast');

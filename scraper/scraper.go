@@ -14,8 +14,10 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-const pyScript string = "main.py"
-const url string = "https://www.worldometers.info/coronavirus/country/south-africa/"
+const (
+	pyScript string = "main.py"
+	url      string = "https://www.worldometers.info/coronavirus/country/south-africa/"
+)
 
 type DataJSON struct {
 	DailyCases []interface{} `json:"daily_cases"`
